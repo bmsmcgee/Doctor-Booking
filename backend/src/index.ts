@@ -5,6 +5,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import { errorHandler } from "./middleware/error.middleware.js";
 import patientRouter from "./routes/patient.route.js";
+import doctorRouter from "./routes/doctor.route.js";
 
 /**
  * Connect to MongoDB using Mongoose.
@@ -40,14 +41,18 @@ const createServer = () => {
 
   // Simple health check endpoint to confirm API is alive
   app.get("/health", (req: Request, res: Response) => {
+    const dummy = req;
     res.status(200).json({
       status: "ok",
-      message: "Doctor booking API is running",
+      message: `Doctor booking API is running\n${dummy}`,
     });
   });
 
   // Mount patient routes under /api/patients
   app.use("/api/patients", patientRouter);
+
+  // Mount doctor routes under /api/doctors
+  app.use("/api/doctors", doctorRouter);
 
   // Global error handler
   app.use(errorHandler);
