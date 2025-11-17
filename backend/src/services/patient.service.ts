@@ -35,6 +35,7 @@ export type PatientUpdateInput = Partial<
  * Interface
  *
  * - Simple filter object used when querying for patients
+ * - Can be extended
  */
 export interface PatientFilter {
   isActive?: boolean;

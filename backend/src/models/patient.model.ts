@@ -90,7 +90,8 @@ const patientSchema = new Schema<PatientDocument, PatientModel>(
 
 /**
  * The Mongoose model for Patient used by the backend.
- * `mongoose.models.Patient` guards against recompiling the model when using hot-reload in dev
+ * `mongoose.models.Patient` guards against recompiling the model
+ *    when using hot-reload in development.
  */
 const Patient: PatientModel =
   (mongoose.models.Patient as PatientModel) ??
