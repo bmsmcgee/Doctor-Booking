@@ -15,7 +15,7 @@ interface PatientAttributes {
 /**
  * Represent a single patient document stored in MongoDB
  */
-interface PatientDocument extends Document, PatientAttributes {
+export interface PatientDocument extends Document, PatientAttributes {
   isActive: boolean; // Flag for soft-deactivation
   createdAt: Date; // When the patient record was first created
   updatedAt: Date; // Last time any field was modified
