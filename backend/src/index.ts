@@ -4,6 +4,7 @@ import express from "express";
 
 import type { Request, Response } from "express";
 import { errorHandler } from "./middleware/error.middleware.js";
+import patientRouter from "./routes/patient.route.js";
 
 /**
  * Connect to MongoDB using Mongoose.
@@ -45,6 +46,10 @@ const createServer = () => {
     });
   });
 
+  // Mount patient routes under /api/patients
+  app.use("/api/patients", patientRouter);
+
+  // Global error handler
   app.use(errorHandler);
 
   return app;
