@@ -1,3 +1,4 @@
+import { ConflictError } from "../errors/http.errors.js";
 import type {
   PatientAttributes,
   PatientDocument,
@@ -40,7 +41,7 @@ export interface PatientFilter {
 }
 
 /**
- * createPatient
+ * createPatientService
  *
  * Async Function
  *
@@ -54,7 +55,7 @@ export interface PatientFilter {
  *  - Error with with a message that a patient with the same
  *    email already exists
  */
-export const createPatient = async (
+export const createPatientService = async (
   input: PatientCreateInput
 ): Promise<PatientDocument> => {
   // Normalize email to lowercase for consistent uniqueness check
@@ -63,8 +64,7 @@ export const createPatient = async (
   const existing = await Patient.findOne({ email }).exec();
 
   if (existing) {
-    const error = new Error("PATIENT_EMAIL_EXISTS");
-    throw error;
+    throw new ConflictError("Email already exists!");
   }
 
   const patient = await Patient.create({
@@ -76,7 +76,7 @@ export const createPatient = async (
 };
 
 /**
- * getPatients
+ * getPatientsService
  *
  * Async Function
  *
@@ -88,7 +88,7 @@ export const createPatient = async (
  * Returns:
  *  - Array of PatientDocument, sorted by creation date
  */
-export const getPatients = async (
+export const getPatientsService = async (
   filter: PatientFilter = {}
 ): Promise<PatientDocument[]> => {
   const query: Record<string, unknown> = {};
@@ -103,7 +103,7 @@ export const getPatients = async (
 };
 
 /**
- * getPatientById
+ * getPatientByIdService
  *
  * Async Funtion
  *
@@ -115,7 +115,7 @@ export const getPatients = async (
  * Returns:
  *  - PatientDocument if found, otherwise null
  */
-export const getPatientById = async (
+export const getPatientByIdService = async (
   id: string
 ): Promise<PatientDocument | null> => {
   const patient = await Patient.findById(id).exec();
@@ -124,7 +124,7 @@ export const getPatientById = async (
 };
 
 /**
- * getPatientByEmail
+ * getPatientByEmailService
  *
  * Async Function
  *
@@ -138,7 +138,7 @@ export const getPatientById = async (
  * Returns:
  *  - PatientDocument if found, otherwise null
  */
-export const getPatientByEmail = async (
+export const getPatientByEmailService = async (
   email: string
 ): Promise<PatientDocument | null> => {
   const normalizeEmail = email.toLowerCase();
@@ -149,7 +149,7 @@ export const getPatientByEmail = async (
 };
 
 /**
- * updatePatient
+ * updatePatientService
  *
  * Async Function
  *
@@ -162,7 +162,7 @@ export const getPatientByEmail = async (
  * Returns:
  *  - Updated PatientDocument if found, otherwise null
  */
-export const updatePatient = async (
+export const updatePatientService = async (
   id: string,
   updates: PatientUpdateInput
 ): Promise<PatientDocument | null> => {
@@ -171,7 +171,7 @@ export const updatePatient = async (
     updates.email = updates.email.toLowerCase();
   }
 
-  const patient = await Patient.findByIdAndUpdate(id, updatePatient, {
+  const patient = await Patient.findByIdAndUpdate(id, updates, {
     new: true, // return the updated document instead of the original
     runValidators: true, // ensure updates respect schema validation rules
   }).exec();
@@ -180,7 +180,7 @@ export const updatePatient = async (
 };
 
 /**
- * deactivatePatient
+ * deactivatePatientService
  *
  * Async Function
  *
@@ -192,7 +192,7 @@ export const updatePatient = async (
  * Returns:
  *  - Updated PatientDocument if found, otherwise null
  */
-export const deactivatePatient = async (
+export const deactivatePatientService = async (
   id: string
 ): Promise<PatientDocument | null> => {
   const patient = await Patient.findByIdAndUpdate(

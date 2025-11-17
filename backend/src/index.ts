@@ -3,6 +3,7 @@ import config from "./config.js";
 import express from "express";
 
 import type { Request, Response } from "express";
+import { errorHandler } from "./middleware/error.middleware.js";
 
 /**
  * Connect to MongoDB using Mongoose.
@@ -43,6 +44,8 @@ const createServer = () => {
       message: "Doctor booking API is running",
     });
   });
+
+  app.use(errorHandler);
 
   return app;
 };

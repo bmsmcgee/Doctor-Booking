@@ -1,8 +1,18 @@
-import type { Request, Response, NextFunction } from "express";
-import Patient, { type PatientDocument } from "../models/patient.model.js";
+import type { Request, Response } from "express";
+import type { PatientDocument } from "../models/patient.model.js";
+import { NotFoundError, ValidationError } from "../errors/http.errors.js";
+import {
+  createPatientService,
+  deactivatePatientService,
+  getPatientByEmailService,
+  getPatientByIdService,
+  getPatientsService,
+  updatePatientService,
+  type PatientUpdateInput,
+} from "../services/patient.service.js";
 
 /**
- * createPatient
+ * createPatientController
  *
  * HTTP handler for creating a new patient.
  *
@@ -19,54 +29,36 @@ import Patient, { type PatientDocument } from "../models/patient.model.js";
  *     "notes": "Prefers morning appointments"// optional
  *   }
  */
-export const createPatient = async (
+export const createPatientController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { firstName, lastName, email, phoneNumber, dateOfBirth, notes } =
-      req.body ?? {};
+  const { firstName, lastName, email, phoneNumber, dateOfBirth, notes } =
+    req.body ?? {};
 
-    if (!firstName || !lastName || !email || !phoneNumber || dateOfBirth) {
-      res.status(400).json({
-        error:
-          "firstName, lastName, email, phone number, and D.O.B. are required.",
-      });
-      return;
-    }
-
-    const existingPatient = await Patient.findOne({ email }).exec();
-
-    if (existingPatient) {
-      res.status(400).json({
-        error: "A patient with this email already exists.",
-      });
-      return;
-    }
-
-    const payload = {
-      firstName,
-      lastName,
-      email,
-      phoneNumber,
-      dateOfBirth,
-      notes,
-    };
-
-    const patient = await Patient.create(payload);
-
-    res.status(201).json({
-      message: "Patient created successfully",
-      patient,
-    });
-  } catch (error) {
-    next(error);
+  if (!firstName || !lastName || !email || !phoneNumber || !dateOfBirth) {
+    throw new ValidationError(
+      "firstName, lastName, email, phone number, and D.O.B. are required."
+    );
   }
+
+  const patient = await createPatientService({
+    firstName,
+    lastName,
+    email,
+    phoneNumber,
+    dateOfBirth,
+    notes,
+  });
+
+  res.status(201).json({
+    message: "Patient created successfully",
+    patient,
+  });
 };
 
 /**
- * getPatients
+ * getPatientsController
  *
  * HTTP handler for fetching a list of patients.
  *
@@ -79,106 +71,97 @@ export const createPatient = async (
  * Example:
  *    GET /api/patients?isActive=true
  */
-export const getPatients = async (
+export const getPatientsController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { isActive } = req.query;
+  const { isActive } = req.query;
 
-    const filter: Record<string, unknown> = {};
+  let isActiveFilter: boolean | undefined;
 
-    if (typeof isActive === "string") {
-      if (isActive === "true") {
-        filter.isActive = true;
-      } else {
-        filter.isActive = false;
-      }
+  if (typeof isActive === "string") {
+    if (isActive === "true") {
+      isActiveFilter = true;
+    } else if (isActive === "false") {
+      isActiveFilter = false;
+    } else {
+      throw new ValidationError(
+        'Invalid value for isActive. Expected "true" or "false".'
+      );
     }
-
-    const patients: PatientDocument[] = await Patient.find(filter)
-      .sort({ createdAt: -1 })
-      .exec();
-
-    res.status(200).json({
-      count: patients.length,
-      patients,
-    });
-  } catch (error) {
-    next(error);
   }
+
+  const filter =
+    typeof isActiveFilter === "boolean" ? { isActive: isActiveFilter } : {};
+
+  const patients: PatientDocument[] = await getPatientsService(filter);
+
+  res.status(200).json({
+    count: patients.length,
+    patients,
+  });
 };
 
 /**
- * getPatientById
+ * getPatientByIdController
  *
  * HTTP handler for fetching a single patient by MongoDB ObjectID.
  *
  * Intended Route:
  *    GET /api/patients/:id
  */
-export const getPatientById = async (
+export const getPatientByIdController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    const patient = await Patient.findById(id).exec();
-
-    if (!patient) {
-      res.status(404).json({
-        error: "Patient not found.",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      patient,
-    });
-  } catch (error) {
-    next(error);
+  if (!id) {
+    throw new ValidationError("Patient ID is required.");
   }
+
+  const patient = await getPatientByIdService(id);
+
+  if (!patient) {
+    throw new NotFoundError("Patient is not found.");
+  }
+
+  res.status(200).json({
+    patient,
+  });
 };
 
 /**
- * getPatientByEmail
+ * getPatientByEmailController
  *
  * HTTP handler for fetching a single patient by email
  *
  * Intended Route:
  *    GET /api/patients/:email
  */
-export const getPatientByEmail = async (
+export const getPatientByEmailController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { email } = req.params;
+  const { email } = req.params;
 
-    const normalizedEmail = email?.toLowerCase();
-
-    const patient = await Patient.findOne({ email: normalizedEmail }).exec();
-
-    if (!patient) {
-      res.status(404).json({
-        error: "Patient not found.",
-      });
-    }
-
-    res.status(200).json({
-      patient,
-    });
-  } catch (error) {
-    next(error);
+  if (!email) {
+    throw new ValidationError("Patient email is required.");
   }
+
+  const patient = await getPatientByEmailService(email);
+
+  if (!patient) {
+    throw new NotFoundError("Patient is not found.");
+  }
+
+  res.status(200).json({
+    patient,
+  });
 };
 
 /**
- * updatePatient
+ * updatePatientController
  *
  * HTTP handler for partially updating a patient.
  *
@@ -196,91 +179,80 @@ export const getPatientByEmail = async (
  *     "isActive": true/false
  *   }
  */
-export const updatePatient = async (
+export const updatePatientController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    const allowedFields = [
-      "firstName",
-      "lastName",
-      "email",
-      "phoneNumber",
-      "dateOfBirth",
-      "notes",
-      "isActive",
-    ] as const;
+  if (!id) {
+    throw new ValidationError("Patient ID is required.");
+  }
 
-    const updates: Partial<Record<(typeof allowedFields)[number], unknown>> =
-      {};
+  const allowedFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "phoneNumber",
+    "dateOfBirth",
+    "notes",
+    "isActive",
+  ] as const;
 
-    for (const field of allowedFields) {
-      if (field in req.body) {
-        updates[field] = req.body[field];
+  const updates: PatientUpdateInput = {};
+  const body = req.body as Record<string, unknown>;
+
+  for (const field of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      const value = body[field];
+      if (value !== undefined) {
+        (updates as unknown as Record<string, unknown>)[field] = value;
       }
     }
-
-    const updatedPatient = await Patient.findByIdAndUpdate(id, updates, {
-      new: true,
-      runValidators: true,
-    }).exec();
-
-    if (!updatedPatient) {
-      res.status(404).json({
-        error: "Patient not found.",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      message: "Patient updated successfully.",
-      patient: updatedPatient,
-    });
-  } catch (error) {
-    next(error);
   }
+
+  if (Object.keys(updates).length === 0) {
+    throw new ValidationError("No updatable fields provided.");
+  }
+
+  const patient = await updatePatientService(id, updates);
+
+  if (!patient) {
+    throw new NotFoundError("Patient not found.");
+  }
+
+  res.status(200).json({
+    message: "Patient updated successfully.",
+    patient: patient,
+  });
 };
 
 /**
- * deactivatePatient
+ * deactivatePatientController
  *
  * Soft delete / deactivate a patient by setting isActive = false
  *
  * Intended Routes:
  *    DELETE /api/patients/:id
  */
-export const deactivatedPatient = async (
+export const deactivatePatientController = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    const updatedPatient = await Patient.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).exec();
-
-    if (!updatePatient) {
-      res.status(404).json({
-        error: "Patient not found",
-      });
-      return;
-    }
-
-    res.status(200).json({
-      error: "Patient deactivated successfully.",
-      patient: updatedPatient,
-    });
-  } catch (error) {
-    next(error);
+  if (!id) {
+    throw new ValidationError("Patient ID is required.");
   }
+
+  const patient = await deactivatePatientService(id);
+
+  if (!patient) {
+    throw new NotFoundError("Patient not found.");
+  }
+
+  res.status(200).json({
+    message: "Patient deactivated successfully.",
+    patient: patient,
+  });
 };
