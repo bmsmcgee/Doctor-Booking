@@ -3,7 +3,7 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
 /**
  * Shape that defines the creation of a new patient
  */
-interface PatientAttributes {
+export interface PatientAttributes {
   firstName: string;
   lastName: string;
   email: string;

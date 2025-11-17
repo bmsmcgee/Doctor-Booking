@@ -144,6 +144,40 @@ export const getPatientById = async (
 };
 
 /**
+ * getPatientByEmail
+ *
+ * HTTP handler for fetching a single patient by email
+ *
+ * Intended Route:
+ *    GET /api/patients/:email
+ */
+export const getPatientByEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email } = req.params;
+
+    const normalizedEmail = email?.toLowerCase();
+
+    const patient = await Patient.findOne({ email: normalizedEmail }).exec();
+
+    if (!patient) {
+      res.status(404).json({
+        error: "Patient not found.",
+      });
+    }
+
+    res.status(200).json({
+      patient,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * updatePatient
  *
  * HTTP handler for partially updating a patient.
