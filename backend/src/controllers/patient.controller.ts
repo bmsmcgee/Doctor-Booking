@@ -109,3 +109,144 @@ export const getPatients = async (
     next(error);
   }
 };
+
+/**
+ * getPatientById
+ *
+ * HTTP handler for fetching a single patient by MongoDB ObjectID.
+ *
+ * Intended Route:
+ *    GET /api/patients/:id
+ */
+export const getPatientById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const patient = await Patient.findById(id).exec();
+
+    if (!patient) {
+      res.status(404).json({
+        error: "Patient not found.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      patient,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * updatePatient
+ *
+ * HTTP handler for partially updating a patient.
+ *
+ * Intended Route:
+ *    PATCH /api/patients/:id
+ *
+ * Body can include any subset of:
+ *   {
+ *     "firstName": "...",
+ *     "lastName": "...",
+ *     "email": "...",
+ *     "phoneNumber": "...",
+ *     "dateOfBirth": "...",
+ *     "notes": "...",
+ *     "isActive": true/false
+ *   }
+ */
+export const updatePatient = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const allowedFields = [
+      "firstName",
+      "lastName",
+      "email",
+      "phoneNumber",
+      "dateOfBirth",
+      "notes",
+      "isActive",
+    ] as const;
+
+    const updates: Partial<Record<(typeof allowedFields)[number], unknown>> =
+      {};
+
+    for (const field of allowedFields) {
+      if (field in req.body) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    const updatedPatient = await Patient.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    }).exec();
+
+    if (!updatedPatient) {
+      res.status(404).json({
+        error: "Patient not found.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Patient updated successfully.",
+      patient: updatedPatient,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * deactivatePatient
+ *
+ * Soft delete / deactivate a patient by setting isActive = false
+ *
+ * Intended Routes:
+ *    DELETE /api/patients/:id
+ */
+export const deactivatedPatient = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const updatedPatient = await Patient.findByIdAndUpdate(
+      id,
+      { isActive: false },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).exec();
+
+    if (!updatePatient) {
+      res.status(404).json({
+        error: "Patient not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      error: "Patient deactivated successfully.",
+      patient: updatedPatient,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
