@@ -57,6 +57,24 @@ export interface AppointFilter {
 }
 
 /**
+ * APPOINTMENT_POPULATE
+ *
+ * Helper
+ *
+ * Includes basic, non-sensitive fields for patient and doctor
+ */
+const APPOINTMENT_POPULATE = [
+  {
+    path: "patientId",
+    select: "firstName lastName email",
+  },
+  {
+    path: "doctorId",
+    select: "firstName lastName email specialty",
+  },
+];
+
+/**
  * createAppointmentService
  *
  * Async Function
@@ -103,6 +121,8 @@ export const createAppointmentService = async (
     notes: input.notes,
     status: "scheduled",
   });
+
+  await appointment.populate(APPOINTMENT_POPULATE);
 
   return appointment;
 };
@@ -163,6 +183,7 @@ export const getAppointmentsService = async (
 
   const appointments = await Appointment.find(query)
     .sort({ startTime: 1 })
+    .populate(APPOINTMENT_POPULATE)
     .exec();
 
   return appointments;
@@ -184,7 +205,9 @@ export const getAppointmentsService = async (
 export const getAppointmentsByIdService = async (
   id: string
 ): Promise<AppointmentDocument | null> => {
-  const appointment = await Appointment.findById(id).exec();
+  const appointment = await Appointment.findById(id)
+    .populate(APPOINTMENT_POPULATE)
+    .exec();
   return appointment;
 };
 
@@ -243,7 +266,9 @@ export const updateAppointmentService = async (
   const appointment = await Appointment.findByIdAndUpdate(id, patch, {
     new: true,
     runValidators: true,
-  }).exec();
+  })
+    .populate(APPOINTMENT_POPULATE)
+    .exec();
 
   return appointment;
 };
@@ -271,7 +296,9 @@ export const cancelAppointmentService = async (
       new: true,
       runValidators: true,
     }
-  ).exec();
+  )
+    .populate(APPOINTMENT_POPULATE)
+    .exec();
 
   return appointment;
 };
@@ -299,7 +326,9 @@ export const completeAppointmentService = async (
       new: true,
       runValidators: true,
     }
-  ).exec();
+  )
+    .populate(APPOINTMENT_POPULATE)
+    .exec();
 
   return appointment;
 };
