@@ -67,6 +67,7 @@ const doctorSchema = new Schema<DoctorDocument, DoctorModel>(
     specialty: {
       type: String,
       required: true,
+      lowercase: true,
       trim: true,
     },
 
