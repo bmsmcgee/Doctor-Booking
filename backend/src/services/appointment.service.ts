@@ -48,7 +48,7 @@ export interface AppointmentUpdateInput {
  *    - status
  *    - time range
  */
-export interface AppointFilter {
+export interface AppointmentFilter {
   patientId?: string;
   doctorId?: string;
   status?: string;
@@ -143,7 +143,7 @@ export const createAppointmentService = async (
  *    - to?
  */
 export const getAppointmentsService = async (
-  filter: AppointFilter = {}
+  filter: AppointmentFilter = {}
 ): Promise<AppointmentDocument[]> => {
   const query: Record<string, unknown> = {};
 
@@ -311,7 +311,7 @@ export const cancelAppointmentService = async (
  * Convenience function for marking an appointment complete
  *
  * Parameters:
- *  - id: the _id string of the appointment to cancel
+ *  - id: the _id string of the appointment to complete
  *
  * Returns:
  *  - Updated AppointmentDocument if found, otherwise null
