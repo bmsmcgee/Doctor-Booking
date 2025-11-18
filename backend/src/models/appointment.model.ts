@@ -56,48 +56,59 @@ export type AppointmentModel = Model<AppointmentDocument>;
  * - Defines how Appointment documents are structured in MongoDB
  * - Connects to Patient and Doctor collections via ObjectId refs
  */
-const appointmentSchema = new Schema<AppointmentDocument, AppointmentModel>({
-  patientId: {
-    type: Schema.Types.ObjectId,
-    ref: "Patient",
-    required: true,
-  },
+const appointmentSchema = new Schema<AppointmentDocument, AppointmentModel>(
+  {
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: "Patient",
+      required: true,
+    },
 
-  doctorId: {
-    type: Schema.Types.ObjectId,
-    ref: "Doctor",
-    required: true,
-  },
+    doctorId: {
+      type: Schema.Types.ObjectId,
+      ref: "Doctor",
+      required: true,
+    },
 
-  startTime: {
-    tyoe: Date,
-    required: true,
-  },
+    startTime: {
+      type: Date,
+      required: true,
+    },
 
-  endTime: {
-    type: Date,
-    required: true,
-  },
+    endTime: {
+      type: Date,
+      required: true,
+    },
 
-  reason: {
-    type: String,
-    required: false,
-    trim: true,
-  },
+    reason: {
+      type: String,
+      required: false,
+      trim: true,
+    },
 
-  notes: {
-    type: String,
-    required: false,
-    trim: true,
-  },
+    notes: {
+      type: String,
+      required: false,
+      trim: true,
+    },
 
-  status: {
-    type: String,
-    enum: ["scheduled", "completed", "cancelled"],
-    required: true,
-    default: "scheduled",
+    status: {
+      type: String,
+      enum: ["scheduled", "completed", "cancelled"],
+      required: true,
+      default: "scheduled",
+    },
   },
-});
+  {
+    timestamps: true,
+    toJSON: {
+      virtuals: true,
+    },
+    toObject: {
+      virtuals: true,
+    },
+  }
+);
 
 /**
  * Indexes

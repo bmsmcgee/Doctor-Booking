@@ -39,20 +39,6 @@ export class ValidationError extends HttpError {
 }
 
 /**
- * TypeErrorHttp
- *
- * - 400 Bad Request
- * - Use when type or shape of a value is incorrect, rather than missing field
- */
-export class TypeErrorHttp extends HttpError {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(message = "Type error", details?: any) {
-    super(400, message, details);
-    Object.setPrototypeOf(this, TypeErrorHttp.prototype);
-  }
-}
-
-/**
  * NotFoundError
  *
  * - 404 Not Found
