@@ -10,9 +10,11 @@ import * as z from "zod";
 export const createPatientSchema = z.object({
   firstName: z.string().trim().min(1, { error: "firstName is required" }),
   lastName: z.string().trim().min(1, { error: "lastName is required" }),
-  email: z.email({
-    error: "A valid email is required",
-  }),
+  email: z
+    .email({
+      error: "Email is not valid",
+    })
+    .min(1, { error: "Email is required" }),
   phoneNumber: z.string().trim().min(1, { error: "phoneNumber is required" }),
   dateOfBirth: z.coerce.date({
     error: "dateOfBirth must be a valid date",
