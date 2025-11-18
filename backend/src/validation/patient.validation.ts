@@ -17,13 +17,11 @@ export const createPatientSchema = z.object({
   dateOfBirth: z.coerce.date({
     error: "dateOfBirth must be a valid date",
   }),
-  notes: z
-    .string()
-    .trim()
-    .max(1000, {
+  notes: z.optional(
+    z.string().trim().max(1000, {
       error: "Notes cannot exceed 1000 characters",
     })
-    .optional(),
+  ),
 });
 
 export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
@@ -74,7 +72,7 @@ export const emailParamSchema = z.object({
 export const updatePatientSchema = createPatientSchema
   .partial()
   .extend({
-    isActive: z.boolean().optional(),
+    isActive: z.optional(z.boolean()),
   })
   .refine((data) => Object.keys(data).length > 0, {
     error: "No updatable fields provided.",

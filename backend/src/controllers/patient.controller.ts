@@ -1,3 +1,4 @@
+import * as z from "zod";
 import type { Request, Response } from "express";
 import type { PatientDocument } from "../models/patient.model.js";
 import { NotFoundError, ValidationError } from "../errors/http.errors.js";
@@ -10,6 +11,15 @@ import {
   updatePatientService,
   type PatientUpdateInput,
 } from "../services/patient.service.js";
+import {
+  createPatientSchema,
+  getPatientsQuerySchema,
+  idParamSchema,
+  updatePatientSchema,
+  type CreatePatientSchema,
+  type GetPatientsQuery,
+  type UpdatePatientInput,
+} from "../validation/patient.validation.js";
 
 /**
  * createPatientController
@@ -18,37 +28,29 @@ import {
  *
  * Intended route:
  *    POST /api/patients
- *
- * Expected JSON body:
- *   {
- *     "firstName": "John",
- *     "lastName": "Doe",
- *     "email": "john.doe@example.com",
- *     "phoneNumber": "+1-555-123-4567",
- *     "dateOfBirth": "1990-05-10",
- *     "notes": "Prefers morning appointments"// optional
- *   }
  */
 export const createPatientController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { firstName, lastName, email, phoneNumber, dateOfBirth, notes } =
-    req.body ?? {};
+  const parsed = createPatientSchema.safeParse(req.body);
 
-  if (!firstName || !lastName || !email || !phoneNumber || !dateOfBirth) {
+  if (!parsed.success) {
     throw new ValidationError(
-      "firstName, lastName, email, phone number, and D.O.B. are required."
+      `Invalid patient data.`,
+      z.flattenError(parsed.error)
     );
   }
 
+  const input: CreatePatientSchema = parsed.data;
+
   const patient = await createPatientService({
-    firstName,
-    lastName,
-    email,
-    phoneNumber,
-    dateOfBirth,
-    notes,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    phoneNumber: input.phoneNumber,
+    dateOfBirth: input.dateOfBirth,
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
   });
 
   res.status(201).json({
@@ -75,20 +77,21 @@ export const getPatientsController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { isActive } = req.query;
+  const parsed = getPatientsQuerySchema.safeParse(req.query);
+
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid query parameter for isActive. Expected "true" or "false"`,
+      z.flattenError(parsed.error)
+    );
+  }
+
+  const query: GetPatientsQuery = parsed.data;
 
   let isActiveFilter: boolean | undefined;
 
-  if (typeof isActive === "string") {
-    if (isActive === "true") {
-      isActiveFilter = true;
-    } else if (isActive === "false") {
-      isActiveFilter = false;
-    } else {
-      throw new ValidationError(
-        'Invalid value for isActive. Expected "true" or "false".'
-      );
-    }
+  if (typeof query.isActive === "string") {
+    isActiveFilter = query.isActive === "true";
   }
 
   const filter =
@@ -114,11 +117,16 @@ export const getPatientByIdController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = idParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError("Patient ID is required.");
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid patient ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const patient = await getPatientByIdService(id);
 
@@ -132,6 +140,9 @@ export const getPatientByIdController = async (
 };
 
 /**
+ * NOT USING THIS
+ * CODE WILL BE KEPT FOR REFERENCE
+ *
  * getPatientByEmailController
  *
  * HTTP handler for fetching a single patient by email
@@ -183,39 +194,32 @@ export const updatePatientController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const idParsed = idParamSchema.safeParse(req.body);
 
-  if (!id) {
-    throw new ValidationError("Patient ID is required.");
+  if (!idParsed.success) {
+    throw new ValidationError(
+      `Invalid patient ID`,
+      z.flattenError(idParsed.error)
+    );
   }
 
-  const allowedFields = [
-    "firstName",
-    "lastName",
-    "email",
-    "phoneNumber",
-    "dateOfBirth",
-    "notes",
-    "isActive",
-  ] as const;
+  const { id } = idParsed.data;
 
-  const updates: PatientUpdateInput = {};
-  const body = req.body as Record<string, unknown>;
+  const bodyParsed = updatePatientSchema.safeParse(req.body);
 
-  for (const field of allowedFields) {
-    if (Object.prototype.hasOwnProperty.call(body, field)) {
-      const value = body[field];
-      if (value !== undefined) {
-        (updates as unknown as Record<string, unknown>)[field] = value;
-      }
-    }
+  if (!bodyParsed.success) {
+    throw new ValidationError(
+      `Invalid update payload`,
+      z.flattenError(bodyParsed.error)
+    );
   }
 
-  if (Object.keys(updates).length === 0) {
-    throw new ValidationError("No updatable fields provided.");
-  }
+  const updatesFromSchema: UpdatePatientInput = bodyParsed.data;
 
-  const patient = await updatePatientService(id, updates);
+  const update: PatientUpdateInput =
+    updatesFromSchema as unknown as PatientUpdateInput;
+
+  const patient = await updatePatientService(id, update);
 
   if (!patient) {
     throw new NotFoundError("Patient not found.");
@@ -239,11 +243,16 @@ export const deactivatePatientController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = idParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError("Patient ID is required.");
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid patient ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const patient = await deactivatePatientService(id);
 
