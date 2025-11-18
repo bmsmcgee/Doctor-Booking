@@ -1,3 +1,4 @@
+import * as z from "zod";
 import type { Request, Response } from "express";
 import { NotFoundError, ValidationError } from "../errors/http.errors.js";
 import {
@@ -9,6 +10,15 @@ import {
   type DoctorUpdateInput,
 } from "../services/doctor.service.js";
 import type { DoctorDocument } from "../models/doctor.model.js";
+import {
+  createDoctorSchema,
+  doctorIdParamSchema,
+  getDoctorQuerySchema,
+  updateDoctorSchema,
+  type CreateDoctorSchema,
+  type GetDoctorQuerySchema,
+  type UpdateDoctorSchema,
+} from "../validation/doctor.validation.js";
 
 /**
  * createDoctorController
@@ -33,30 +43,27 @@ export const createDoctorController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const {
-    firstName,
-    lastName,
-    email,
-    specialty,
-    phoneNumber,
-    clinicName,
-    notes,
-  } = req.body ?? {};
+  const parsed = createDoctorSchema.safeParse(req.body);
 
-  if (!firstName || !lastName || !email || !specialty) {
+  if (!parsed.success) {
     throw new ValidationError(
-      "First name, last name, email, and specialty are required."
+      `Invalid doctor data`,
+      z.flattenError(parsed.error)
     );
   }
 
+  const input: CreateDoctorSchema = parsed.data;
+
   const doctor = await createDoctorService({
-    firstName,
-    lastName,
-    email,
-    specialty,
-    phoneNumber,
-    clinicName,
-    notes,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    specialty: input.specialty,
+    ...(input.phoneNumber !== undefined
+      ? { phoneNumber: input.phoneNumber }
+      : {}),
+    ...(input.clinicName !== undefined ? { clinicName: input.clinicName } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
   });
 
   res.status(201).json({
@@ -88,26 +95,30 @@ export const getDoctorsController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { isActive, specialty } = req.query;
+  const parsed = getDoctorQuerySchema.safeParse(req.query);
+
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid query parameters`,
+      z.flattenError(parsed.error)
+    );
+  }
+
+  const query: GetDoctorQuerySchema = parsed.data;
 
   let isActiveFilter: boolean | undefined;
 
-  if (typeof isActive === "string") {
-    if (isActive === "true") {
-      isActiveFilter = true;
-    } else if (isActive === "false") {
-      isActiveFilter = false;
-    } else
-      throw new ValidationError(
-        `Invalid value for isActive. Expected "true" or "false".`
-      );
+  if (typeof query.isActive === "string") {
+    isActiveFilter = query.isActive === "true";
   }
 
   const filter = {
     ...(typeof isActiveFilter === "boolean"
       ? { isActive: isActiveFilter }
       : {}),
-    ...(typeof specialty === "string" ? { specialty } : {}),
+    ...(typeof query.specialty === "string"
+      ? { specialty: query.specialty }
+      : {}),
   };
 
   const doctors: DoctorDocument[] = await getDoctorsService(filter);
@@ -132,11 +143,16 @@ export const getDoctorByIdController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = doctorIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Doctor ID is required`);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid doctor ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const doctor = await getDoctorByIdService(id);
 
@@ -175,39 +191,30 @@ export const updateDoctorController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const idParsed = doctorIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Doctor ID is required`);
+  if (!idParsed.success) {
+    throw new ValidationError(
+      `Invalid doctor ID`,
+      z.flattenError(idParsed.error)
+    );
   }
 
-  const allowedFields = [
-    "firstName",
-    "lastName",
-    "email",
-    "specialty",
-    "phoneNumber",
-    "clinicName",
-    "notes",
-    "isActive",
-  ] as const;
+  const { id } = idParsed.data;
 
-  const updates: DoctorUpdateInput = {};
+  const bodyParsed = updateDoctorSchema.safeParse(req.body);
 
-  const body = req.body as Record<string, unknown>;
-
-  for (const field of allowedFields) {
-    if (Object.prototype.hasOwnProperty.call(body, field)) {
-      const value = body[field];
-      if (value !== undefined) {
-        (updates as unknown as Record<string, unknown>)[field] = value;
-      }
-    }
+  if (!bodyParsed.success) {
+    throw new ValidationError(
+      `Invalid update payload`,
+      z.flattenError(bodyParsed.error)
+    );
   }
 
-  if (Object.keys(updates).length === 0) {
-    throw new ValidationError(`No updatable fields provided.`);
-  }
+  const updateFromSchema: UpdateDoctorSchema = bodyParsed.data;
+
+  const updates: DoctorUpdateInput =
+    updateFromSchema as unknown as DoctorUpdateInput;
 
   const doctor = await updateDoctorService(id, updates);
 
@@ -233,11 +240,16 @@ export const deactivateDoctorController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = doctorIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Doctor ID is required.`);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid doctor ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const doctor = await deactivateDoctorService(id);
 
