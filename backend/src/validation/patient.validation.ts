@@ -36,7 +36,7 @@ export type CreatePatientSchema = z.infer<typeof createPatientSchema>;
  * - isActive must be "true" or "false" if present.
  */
 export const getPatientsQuerySchema = z.object({
-  isActive: z.enum(["true", "false"]).optional(),
+  isActive: z.optional(z.enum(["true", "false"])),
 });
 
 export type GetPatientsQuery = z.infer<typeof getPatientsQuerySchema>;
