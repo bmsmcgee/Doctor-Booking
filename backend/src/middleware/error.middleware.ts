@@ -27,7 +27,7 @@ export const errorHandler = (
   if (err instanceof HttpError) {
     res.status(err.statusCode).json({
       error: err.message,
-      ...(err.details ? { details: err.details } : {}),
+      ...(err.details !== undefined ? { details: err.details } : {}),
     });
     return;
   }
