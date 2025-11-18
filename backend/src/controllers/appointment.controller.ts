@@ -1,8 +1,6 @@
+import * as z from "zod";
 import type { Request, Response } from "express";
-import type {
-  AppointmentDocument,
-  AppointmentStatus,
-} from "../models/appointment.model.js";
+import type { AppointmentDocument } from "../models/appointment.model.js";
 import { NotFoundError, ValidationError } from "../errors/http.errors.js";
 import {
   cancelAppointmentService,
@@ -13,15 +11,15 @@ import {
   updateAppointmentService,
   type AppointmentUpdateInput,
 } from "../services/appointment.service.js";
-
-/**
- * allowedStatuses
- */
-const allowedStatuses: AppointmentStatus[] = [
-  "scheduled",
-  "completed",
-  "cancelled",
-];
+import {
+  appointmentIdParamSchema,
+  createAppointmentSchema,
+  getAppointmentQuerySchema,
+  updateAppointmentSchema,
+  type CreateAppointmentSchema,
+  type GetAppointmentQuerySchema,
+  type UpdateAppointmentSchema,
+} from "../validation/appointment.validation.js";
 
 /**
  * createAppointmentController
@@ -47,22 +45,24 @@ export const createAppointmentController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { patientId, doctorId, startTime, endTime, reason, notes } =
-    req.body ?? {};
+  const parsed = createAppointmentSchema.safeParse(req.body);
 
-  if (!patientId || !doctorId || !startTime || !endTime) {
+  if (!parsed.success) {
     throw new ValidationError(
-      `Patient ID, doctor ID, start time, and end time are required.`
+      `Invalid appointment data`,
+      z.flattenError(parsed.error)
     );
   }
 
+  const input: CreateAppointmentSchema = parsed.data;
+
   const appointment = await createAppointmentService({
-    patientId,
-    doctorId,
-    startTime,
-    endTime,
-    reason,
-    notes,
+    patientId: input.patientId,
+    doctorId: input.doctorId,
+    startTime: input.startTime,
+    endTime: input.endTime,
+    ...(input.reason !== undefined ? { reason: input.reason } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
   });
 
   res.status(201).json({
@@ -92,25 +92,23 @@ export const getAppointmentsController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { patientId, doctorId, status, from, to } = req.query;
+  const parsed = getAppointmentQuerySchema.safeParse(req.params);
 
-  let statusFilter: AppointmentStatus | undefined;
-
-  if (typeof status === "string") {
-    if (!allowedStatuses.includes(status as AppointmentStatus)) {
-      throw new ValidationError(
-        `Invalid status value. Expected on of: ${allowedStatuses.join(", ")}.`
-      );
-    }
-    statusFilter = status as AppointmentStatus;
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid query parameters`,
+      z.flattenError(parsed.error)
+    );
   }
 
+  const query: GetAppointmentQuerySchema = parsed.data;
+
   const filter = {
-    ...(typeof patientId === "string" ? { patientId } : {}),
-    ...(typeof doctorId === "string" ? { doctorId } : {}),
-    ...{ statusFilter },
-    ...(typeof from === "string" ? { from } : {}),
-    ...(typeof to === "string" ? { to } : {}),
+    ...(query.patientId ? { patientId: query.patientId } : {}),
+    ...(query.doctorId ? { doctorId: query.doctorId } : {}),
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.from ? { from: query.from } : {}),
+    ...(query.to ? { to: query.to } : {}),
   };
 
   const appointments: AppointmentDocument[] = await getAppointmentsService(
@@ -137,11 +135,16 @@ export const getAppointmentByIdController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = appointmentIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Appointment ID is required.`);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid appointment ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const appointment = await getAppointmentsByIdService(id);
 
@@ -168,36 +171,30 @@ export const updateAppointmentController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const idParsed = appointmentIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Appointment ID required.`);
+  if (!idParsed.success) {
+    throw new ValidationError(
+      `Invalid appointment ID`,
+      z.flattenError(idParsed.error)
+    );
   }
 
-  const allowedFields = [
-    "startTime",
-    "endTime",
-    "reason",
-    "notes",
-    "status",
-  ] as const;
+  const { id } = idParsed.data;
 
-  const updates: AppointmentUpdateInput = {};
+  const bodyParsed = updateAppointmentSchema.safeParse(req.body);
 
-  const body = req.body as Record<string, unknown>;
-
-  for (const field of allowedFields) {
-    if (Object.prototype.hasOwnProperty.call(body, field)) {
-      const value = body[field];
-      if (value !== undefined) {
-        (updates as unknown as Record<string, unknown>)[field] = value;
-      }
-    }
+  if (!bodyParsed.success) {
+    throw new ValidationError(
+      `Invalid update payload`,
+      z.flattenError(bodyParsed.error)
+    );
   }
 
-  if (Object.keys(updates).length == 0) {
-    throw new ValidationError(`No updatable fields provided.`);
-  }
+  const updateFromSchema: UpdateAppointmentSchema = bodyParsed.data;
+
+  const updates: AppointmentUpdateInput =
+    updateFromSchema as unknown as AppointmentUpdateInput;
 
   const appointment = await updateAppointmentService(id, updates);
 
@@ -225,11 +222,16 @@ export const cancelAppointmentController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = appointmentIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Appointment ID is required.`);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid appointment ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const cancel = await cancelAppointmentService(id);
 
@@ -257,11 +259,16 @@ export const completeAppointmentController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const parsed = appointmentIdParamSchema.safeParse(req.params);
 
-  if (!id) {
-    throw new ValidationError(`Appointment ID required.`);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `Invalid appointment ID`,
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { id } = parsed.data;
 
   const complete = await completeAppointmentService(id);
 
