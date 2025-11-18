@@ -61,6 +61,7 @@ export const createDoctorService = async (
   const doctor = await Doctor.create({
     ...input,
     email,
+    specialty: input.specialty.toLowerCase(),
   });
 
   return doctor;
