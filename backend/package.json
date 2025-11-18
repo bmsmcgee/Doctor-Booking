@@ -21,7 +21,8 @@
     "lru-cache": "^11.2.2",
     "mongodb": "^7.0.0",
     "mongoose": "^8.19.4",
-    "rimraf": "^6.1.0"
+    "rimraf": "^6.1.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
