@@ -51,10 +51,6 @@ export interface PatientFilter {
  * Responsibilities:
  *  - Check for uniqueness on email
  *  - Delegate the actual creation to Mongoose
- *
- * Throws:
- *  - Error with with a message that a patient with the same
- *    email already exists
  */
 export const createPatientService = async (
   input: PatientCreateInput
@@ -142,9 +138,9 @@ export const getPatientByIdService = async (
 export const getPatientByEmailService = async (
   email: string
 ): Promise<PatientDocument | null> => {
-  const normalizeEmail = email.toLowerCase();
+  const normalizedEmail = email.toLowerCase();
 
-  const patient = await Patient.findOne({ email: normalizeEmail }).exec();
+  const patient = await Patient.findOne({ email: normalizedEmail }).exec();
 
   return patient;
 };
@@ -167,12 +163,12 @@ export const updatePatientService = async (
   id: string,
   updates: PatientUpdateInput
 ): Promise<PatientDocument | null> => {
-  // Normalize email if part of update
-  if (updates.email) {
-    updates.email = updates.email.toLowerCase();
+  const patch: PatientUpdateInput = { ...updates };
+  if (patch.email) {
+    patch.email = patch.email.toLowerCase();
   }
 
-  const patient = await Patient.findByIdAndUpdate(id, updates, {
+  const patient = await Patient.findByIdAndUpdate(id, patch, {
     new: true, // return the updated document instead of the original
     runValidators: true, // ensure updates respect schema validation rules
   }).exec();
