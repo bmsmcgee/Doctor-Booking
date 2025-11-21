@@ -126,7 +126,7 @@ export const loginUserController = async (
     throw new ValidationError(`Invalid email or password`);
   }
 
-  const isPasswordValid = verifyPasswordService(user, input.password);
+  const isPasswordValid = await verifyPasswordService(user, input.password);
 
   if (!isPasswordValid) {
     throw new ValidationError(`Invalid email or password`);

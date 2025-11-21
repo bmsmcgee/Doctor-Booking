@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import patientRouter from "./routes/patient.route.js";
 import doctorRouter from "./routes/doctor.route.js";
 import appointmentRouter from "./routes/appointment.route.js";
+import authRouter from "./routes/auth.route.js";
 
 /**
  * Connect to MongoDB using Mongoose.
@@ -48,6 +49,9 @@ const createServer = () => {
       message: `Doctor booking API is running\n${dummy}`,
     });
   });
+
+  //Mount auth routes under /api/auth
+  app.use("/api/auth", authRouter);
 
   // Mount patient routes under /api/patients
   app.use("/api/patients", patientRouter);
