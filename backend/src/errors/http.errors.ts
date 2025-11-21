@@ -39,6 +39,20 @@ export class ValidationError extends HttpError {
 }
 
 /**
+ * UnauthorizedError
+ *
+ * - 401 Authorization Failure
+ * - Use when the client sends invalid or incomplete data
+ */
+export class UnauthorizedError extends HttpError {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(message = "Unauthorized", details?: any) {
+    super(401, message, details);
+    Object.setPrototypeOf(this, UnauthorizedError.prototype);
+  }
+}
+
+/**
  * NotFoundError
  *
  * - 404 Not Found
