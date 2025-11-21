@@ -13,6 +13,7 @@ import {
 } from "../services/patient.service.js";
 import {
   createPatientSchema,
+  emailParamSchema,
   getPatientsQuerySchema,
   idParamSchema,
   updatePatientSchema,
@@ -140,9 +141,6 @@ export const getPatientByIdController = async (
 };
 
 /**
- * NOT USING THIS
- * CODE WILL BE KEPT FOR REFERENCE
- *
  * getPatientByEmailController
  *
  * HTTP handler for fetching a single patient by email
@@ -154,11 +152,16 @@ export const getPatientByEmailController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { email } = req.params;
+  const parsed = emailParamSchema.safeParse(req.params);
 
-  if (!email) {
-    throw new ValidationError("Patient email is required.");
+  if (!parsed.success) {
+    throw new ValidationError(
+      "Invalid patient email.",
+      z.flattenError(parsed.error)
+    );
   }
+
+  const { email } = parsed.data;
 
   const patient = await getPatientByEmailService(email);
 
