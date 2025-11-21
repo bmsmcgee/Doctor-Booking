@@ -25,4 +25,9 @@ if (!config.mongoUri) {
   throw new Error("MONGO_URI is missing from environment variables!");
 }
 
+// Fail fast if JWT_SECRET is missing
+if (!config.jwtSecret) {
+  throw new Error("JWT_SECRET is not configured.");
+}
+
 export default config;
