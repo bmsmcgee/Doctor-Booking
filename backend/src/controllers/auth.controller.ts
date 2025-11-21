@@ -9,7 +9,7 @@ import {
   type LoginUserSchema,
   type RegisterUserSchema,
 } from "../validation/user.validation.js";
-import { ValidationError } from "../errors/http.errors.js";
+import { UnauthorizedError, ValidationError } from "../errors/http.errors.js";
 import {
   createUserService,
   getUserByEmailService,
@@ -123,13 +123,13 @@ export const loginUserController = async (
   const user = await getUserByEmailService(input.email);
 
   if (!user) {
-    throw new ValidationError(`Invalid email or password`);
+    throw new UnauthorizedError("Invalid email or password.");
   }
 
   const isPasswordValid = await verifyPasswordService(user, input.password);
 
   if (!isPasswordValid) {
-    throw new ValidationError(`Invalid email or password`);
+    throw new UnauthorizedError("Invalid email or password.");
   }
 
   if (!user.isActive) {
