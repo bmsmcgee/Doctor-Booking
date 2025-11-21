@@ -4,6 +4,7 @@ import mongoose, { Schema, type Document, type Model } from "mongoose";
  * Shape that defines the creation of a new patient
  */
 export interface PatientAttributes {
+  userId?: mongoose.Types.ObjectId;
   firstName: string;
   lastName: string;
   email: string;
@@ -31,6 +32,11 @@ type PatientModel = Model<PatientDocument>;
  */
 const patientSchema = new Schema<PatientDocument, PatientModel>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
     firstName: {
       type: String,
       required: true,
