@@ -23,7 +23,7 @@ export const registerUserSchema = z.object({
   ),
 });
 
-export type registerUserSchema = z.infer<typeof registerUserSchema>;
+export type RegisterUserSchema = z.infer<typeof registerUserSchema>;
 
 /**
  * loginUserSchema
@@ -46,4 +46,4 @@ export const userIdParamSchema = z.object({
   id: z.string().trim().min(1, { error: `User ID is required` }),
 });
 
-export type userIdParamSchema = z.infer<typeof userIdParamSchema>;
+export type UserIdParamSchema = z.infer<typeof userIdParamSchema>;

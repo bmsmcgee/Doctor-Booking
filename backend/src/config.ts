@@ -16,6 +16,8 @@ const config = {
 
   // MongoDB connection string must be preset
   mongoUri: process.env.MONGO_URI ?? "",
+
+  jwtSecret: process.env.JWT_SECRET,
 };
 
 // Fail fast if MONGO_URI is missing
